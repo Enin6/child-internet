@@ -1,0 +1,947 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#080b12">
+<title>孩子需要的不是"防沉迷"，是"会用网"</title>
+<meta name="description" content="关于未成年人网络保护的一则网评：把互联网这个"最大变量"，变成孩子成长的"最大增量"。">
+<meta name="author" content="网评作品">
+
+<style>
+/* ============ 设计令牌 ============ */
+:root{
+  --ink:#f2f1ee;
+  --ink-dim:#9aa3b2;
+  --bg:#080b12;
+  --bg-2:#0d1420;
+  --accent:#ff6b52;
+  --accent-dim:#c2452f;
+  --gold:#f5c76a;
+  --line:rgba(255,255,255,.12);
+
+  --font-sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB",
+    "Microsoft YaHei","Source Han Sans SC","Noto Sans CJK SC",sans-serif;
+  --font-serif:"Songti SC","SimSun","Source Han Serif SC","Noto Serif CJK SC",serif;
+
+  --vh:1svh;
+  --pad-x:clamp(20px,7vw,44px);
+}
+@supports(height:100svh){ :root{ --vh:1svh; } }
+
+*,*::before,*::after{ box-sizing:border-box; }
+
+html{
+  -webkit-text-size-adjust:100%;
+  scroll-behavior:smooth;
+  background:var(--bg);
+}
+@media(prefers-reduced-motion:reduce){ html{ scroll-behavior:auto; } }
+
+body{
+  margin:0;
+  font-family:var(--font-sans);
+  background:var(--bg);
+  color:var(--ink);
+  line-height:1.8;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  overscroll-behavior-y:none;
+  -webkit-tap-highlight-color:transparent;
+}
+
+img{ display:block; max-width:100%; height:auto; }
+
+/* ============ 阅读进度条 ============ */
+.progress{
+  position:fixed; top:0; left:0; z-index:100;
+  height:2px; width:100%;
+  background:linear-gradient(90deg,var(--accent),var(--gold));
+  transform:scaleX(0); transform-origin:0 50%;
+  will-change:transform;
+}
+
+/* ============ 场景骨架 ============ */
+.scene{
+  position:relative;
+  height:calc(var(--beats,2) * 100 * var(--vh));
+}
+/* 纯文字场景：加一层极淡的光晕与网格，避免大片死黑 */
+.scene--plain{
+  background:
+    radial-gradient(70% 45% at 50% 34%, rgba(255,107,82,.055) 0%, transparent 70%),
+    radial-gradient(90% 55% at 50% 96%, rgba(70,100,160,.07) 0%, transparent 72%),
+    var(--bg);
+}
+/* 纯文字屏：右侧巨大虚化序号，制造版面层次（问题2：不再单薄） */
+.scene--plain .stage{
+  position:sticky;
+}
+.scene--plain .stage::before{
+  content:var(--num);
+  position:absolute;
+  right:-.04em; top:50%;
+  transform:translateY(-50%);
+  z-index:0;
+  font-size:clamp(150px,44vw,290px);
+  font-weight:900;
+  line-height:.78;
+  letter-spacing:-.07em;
+  color:rgba(255,255,255,.045);
+  pointer-events:none;
+  user-select:none;
+}
+/* 纯文字屏顶部一道细光 */
+.scene--plain .stage::after{
+  content:"";
+  position:absolute; inset:0; z-index:1;
+  pointer-events:none;
+  background:radial-gradient(120% 60% at 50% 0%, rgba(255,107,82,.075) 0%, transparent 62%);
+}
+.stage{
+  position:sticky; top:0;
+  height:calc(100 * var(--vh));
+  overflow:hidden;
+  display:grid;
+  grid-template-rows:1fr;
+  align-items:stretch;
+  padding:max(28px,env(safe-area-inset-top)) var(--pad-x)
+          max(28px,env(safe-area-inset-bottom));
+  transform:translateZ(0);
+}
+
+/* 背景图铺满 + 定位 */
+.bg-art{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  object-fit:cover; object-position:center;
+  z-index:0;
+  will-change:transform;
+}
+/* 竖图完整显示：底部对齐，上方空出的区域留给文字 */
+.bg-art--contain{
+  object-fit:contain;
+  object-position:center bottom;
+  /* 顶部用遮罩淡出，避免 contain 留白产生硬边 */
+  -webkit-mask-image:linear-gradient(180deg, transparent 0%, #000 14%, #000 100%);
+  mask-image:linear-gradient(180deg, transparent 0%, #000 14%, #000 100%);
+}
+/* 提亮：让深色插画在深色背景上"亮"出来（问题1：锁和背景糊在一起） */
+.bg-art--bright{
+  filter:brightness(1.5) contrast(1.12) saturate(1.15);
+}
+/* 图片容器加一圈柔光，把画面从背景里"托"起来 */
+.bg-glow{
+  position:absolute; inset:0; z-index:0;
+  background:radial-gradient(58% 42% at 50% 56%, rgba(255,120,90,.13) 0%, transparent 72%);
+  pointer-events:none;
+}
+/* 压暗遮罩，保证文字可读；用两层平滑渐变，避免出现硬接缝 */
+.stage::after{
+  content:"";
+  position:absolute; inset:0; z-index:1;
+  pointer-events:none;
+  background:linear-gradient(180deg,
+      rgba(8,11,18,.94) 0%,
+      rgba(8,11,18,.86) 14%,
+      rgba(8,11,18,.66) 30%,
+      rgba(8,11,18,.34) 44%,
+      rgba(8,11,18,.12) 56%,
+      rgba(8,11,18,.18) 70%,
+      rgba(8,11,18,.55) 86%,
+      rgba(8,11,18,.93) 96%,
+      rgba(8,11,18,.99) 100%);
+}
+
+/* 内容层 */
+.content{
+  position:relative; z-index:2;
+  width:100%; max-width:640px;
+  margin:0 auto;
+  display:flex; flex-direction:column;
+  justify-content:center;
+  gap:clamp(14px,2.6vh,26px);
+}
+
+/* ============ 文字样式 ============ */
+.kicker{
+  font-size:clamp(11px,2.9vw,13px);
+  letter-spacing:.34em;
+  text-transform:uppercase;
+  color:var(--accent);
+  font-weight:600;
+  margin:0;
+}
+.kicker--gold{ color:var(--gold); }
+
+.headline{
+  font-size:clamp(28px,8.4vw,52px);
+  line-height:1.24;
+  font-weight:800;
+  letter-spacing:-.015em;
+  margin:0;
+  text-wrap:balance;
+}
+.headline em{
+  font-style:normal;
+  color:var(--accent);
+  position:relative;
+}
+
+.sub{
+  font-size:clamp(15px,4.2vw,19px);
+  line-height:1.85;
+  color:var(--ink-dim);
+  margin:0;
+  text-wrap:pretty;
+}
+.sub strong{ color:var(--ink); font-weight:600; }
+
+.body-text{
+  font-size:clamp(15px,4.1vw,18px);
+  line-height:1.9;
+  margin:0;
+  color:rgba(242,241,238,.88);
+  text-wrap:pretty;
+  letter-spacing:.01em;
+}
+/* 在图片上的文字加一层文字阴影，任何背景下都读得清 */
+.stage--texture .body-text,
+.scene--cover .body-text{
+  text-shadow:0 1px 12px rgba(0,0,0,.85), 0 0 2px rgba(0,0,0,.6);
+}
+.headline,.cover-title{
+  text-shadow:0 2px 18px rgba(0,0,0,.55);
+}
+
+/* 大字领读句：每屏的"眼"，比正文大一档、更亮 */
+.lead{
+  font-size:clamp(19px,5.2vw,26px);
+  line-height:1.55;
+  font-weight:700;
+  color:var(--ink);
+  margin:0;
+  letter-spacing:-.01em;
+  text-wrap:balance;
+}
+.lead em{
+  font-style:normal;
+  color:var(--accent);
+}
+.lead--gold em{ color:var(--gold); }
+
+/* 强调行：金句，独占一行，带竖线 */
+.punch{
+  font-size:clamp(17px,4.6vw,22px);
+  line-height:1.6;
+  font-weight:700;
+  color:var(--gold);
+  margin:0;
+  padding-left:14px;
+  border-left:2px solid var(--accent);
+  text-wrap:pretty;
+}
+
+/* 小标签：给正文分段，制造节奏 */
+.tagline{
+  display:inline-flex; align-items:center; gap:8px;
+  font-size:clamp(11px,2.9vw,12px);
+  font-weight:700;
+  letter-spacing:.18em;
+  color:var(--accent);
+  margin:0;
+}
+.tagline::before{
+  content:"";
+  width:16px; height:1px;
+  background:currentColor;
+  opacity:.7;
+}
+
+.body-text .hl{
+  color:var(--gold);
+  font-weight:600;
+}
+
+.quote{
+  font-family:var(--font-serif);
+  font-size:clamp(21px,5.8vw,34px);
+  line-height:1.68;
+  margin:0;
+  color:var(--ink);
+  font-weight:600;
+}
+.quote em{ font-style:normal; color:var(--gold); }
+
+.meta{
+  font-size:clamp(12px,3.2vw,14px);
+  color:var(--ink-dim);
+  letter-spacing:.06em;
+  margin:0;
+}
+
+/* ============ 开场 ============ */
+.scene--cover .stage::after{
+  background:
+    radial-gradient(85% 55% at 50% 38%, transparent 0%, rgba(8,11,18,.22) 62%, rgba(8,11,18,.9) 100%),
+    linear-gradient(180deg,
+      rgba(8,11,18,.92) 0%,
+      rgba(8,11,18,.55) 22%,
+      rgba(8,11,18,.12) 42%,
+      rgba(8,11,18,.30) 62%,
+      rgba(8,11,18,.88) 82%,
+      rgba(8,11,18,.98) 100%);
+}
+.cover-content{
+  justify-content:flex-end;
+  padding-bottom:clamp(26px,7vh,64px);
+}
+/* 标题区加一层柔和压暗，保证任何底色上都读得清 */
+.cover-content::before{
+  content:"";
+  position:absolute;
+  left:calc(var(--pad-x) * -0.55);
+  right:calc(var(--pad-x) * -0.55);
+  bottom:-24px; top:-40px;
+  z-index:-1;
+  background:radial-gradient(80% 70% at 30% 60%, rgba(5,7,12,.82) 0%, rgba(5,7,12,.45) 55%, transparent 85%);
+  filter:blur(2px);
+}
+.cover-title{
+  font-size:clamp(32px,9.6vw,60px);
+  line-height:1.2;
+  font-weight:800;
+  letter-spacing:-.02em;
+  margin:0;
+  text-wrap:balance;
+}
+.cover-title .dim{ color:var(--ink-dim); }
+.cover-title .hot{ color:var(--accent); }
+
+.scroll-hint{
+  margin-top:clamp(20px,4vh,36px);
+  display:flex; align-items:center; gap:10px;
+  font-size:12px; letter-spacing:.22em; color:var(--ink-dim);
+}
+.scroll-hint .dot{
+  width:1px; height:28px;
+  background:linear-gradient(180deg,var(--accent),transparent);
+  animation:hint 2.2s ease-in-out infinite;
+}
+@keyframes hint{
+  0%,100%{ opacity:.25; transform:scaleY(.5); transform-origin:top; }
+  50%    { opacity:1;   transform:scaleY(1);  transform-origin:top; }
+}
+
+/* ============ 数字大屏 ============ */
+.stat-wrap{ text-align:center; gap:clamp(8px,2vh,18px); align-items:center; }
+.stat-line{
+  margin:0;
+  display:flex; align-items:baseline; justify-content:center;
+  gap:.08em;
+}
+.stat-pct{
+  font-size:clamp(34px,11vw,76px);
+  font-weight:800;
+  line-height:1;
+  color:var(--accent);
+  letter-spacing:-.02em;
+}
+.stat-num{
+  font-size:clamp(64px,21vw,148px);
+  font-weight:800;
+  line-height:1;
+  letter-spacing:-.04em;
+  font-variant-numeric:tabular-nums;
+  background:linear-gradient(180deg,#fff 0%,var(--accent) 130%);
+  -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent;
+  margin:0;
+}
+.stat-unit{
+  font-size:clamp(14px,4vw,20px);
+  color:var(--ink-dim);
+  letter-spacing:.1em;
+  margin:0;
+}
+.stat-note{
+  font-size:clamp(13px,3.6vw,15px);
+  color:rgba(154,163,178,.75);
+  margin:0;
+  line-height:1.7;
+}
+
+/* ============ 三问 / 列表 ============ */
+.ask-list{
+  display:flex; flex-direction:column;
+  gap:clamp(10px,2vh,18px);
+  margin:0; padding:0; list-style:none;
+}
+.ask-list li{
+  display:flex; gap:14px; align-items:baseline;
+  font-size:clamp(16px,4.5vw,21px);
+  line-height:1.7;
+  color:rgba(242,241,238,.9);
+}
+.ask-list .num{
+  flex:0 0 auto;
+  font-size:clamp(11px,3vw,13px);
+  color:var(--accent);
+  font-weight:700;
+  letter-spacing:.1em;
+  padding-top:.35em;
+}
+/* 竖排中文序号：更像"看/说/放"三字的视觉重量 */
+.ask-list .num--cn{
+  font-size:clamp(13px,3.6vw,16px);
+  letter-spacing:0;
+  padding-top:.5em;
+  min-width:1.2em;
+  color:var(--gold);
+  font-weight:800;
+}
+
+/* ============ 结尾 ============ */
+.scene--end .stage::after{
+  background:
+    linear-gradient(180deg,
+      rgba(6,8,14,.90) 0%,
+      rgba(6,8,14,.72) 26%,
+      rgba(6,8,14,.55) 48%,
+      rgba(6,8,14,.86) 74%,
+      rgba(6,8,14,.99) 100%);
+}
+.end-sign{
+  margin-top:clamp(24px,5vh,44px);
+  padding-top:clamp(18px,3vh,28px);
+  border-top:1px solid var(--line);
+  display:flex; flex-direction:column; gap:6px;
+}
+.end-sign p{ margin:0; font-size:clamp(12px,3.2vw,13px); color:var(--ink-dim); letter-spacing:.05em; }
+.ai-note{
+  font-size:clamp(10px,2.8vw,11px);
+  color:rgba(154,163,178,.55);
+  line-height:1.7;
+  margin-top:10px;
+}
+
+/* ============ 滚动动画：渐显（更快，避免"等动画"） ============ */
+.rv{
+  opacity:0;
+  transform:translate3d(0,20px,0);
+  transition:opacity .46s cubic-bezier(.22,1,.36,1),
+             transform .46s cubic-bezier(.22,1,.36,1);
+  transition-delay:calc(var(--d,0) * 55ms);
+  will-change:opacity,transform;
+}
+.rv.is-in{ opacity:1; transform:none; }
+
+/* ============ 视差层（CSS 滚动驱动，支持的浏览器自动增强） ============ */
+@supports(animation-timeline:view()){
+  .scene[data-parallax]{ view-timeline-name:--sc; view-timeline-axis:block; }
+  .scene[data-parallax] .bg-art{
+    animation:drift linear both;
+    animation-timeline:--sc;
+    animation-range:cover 0% cover 100%;
+  }
+  @keyframes drift{
+    from{ transform:translate3d(0,-3.2%,0) scale(1.1); }
+    to  { transform:translate3d(0, 3.2%,0) scale(1.1); }
+  }
+}
+
+/* ============ 减弱动效 ============ */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.001ms !important;
+  }
+  .rv{ opacity:1 !important; transform:none !important; }
+}
+
+
+/* ============ 背景音乐开关 ============ */
+.bgm-toggle{
+  position:fixed;
+  right:max(16px, env(safe-area-inset-right));
+  top:max(16px, env(safe-area-inset-top));
+  z-index:120;
+  display:inline-flex; align-items:center; gap:7px;
+  padding:8px 13px 8px 11px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.16);
+  background:rgba(12,17,26,.62);
+  -webkit-backdrop-filter:blur(10px);
+  backdrop-filter:blur(10px);
+  color:rgba(242,241,238,.82);
+  font-family:inherit;
+  font-size:12px;
+  letter-spacing:.06em;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  transition:color .25s, border-color .25s, background .25s;
+}
+.bgm-toggle:hover,
+.bgm-toggle:focus-visible{
+  color:#fff;
+  border-color:rgba(255,107,82,.55);
+  outline:none;
+}
+.bgm-toggle[aria-pressed="true"]{
+  color:var(--gold);
+  border-color:rgba(245,199,106,.5);
+}
+.bgm-icon{ display:inline-flex; }
+/* 播放中：图标轻微脉动 */
+.bgm-toggle[aria-pressed="true"] .bgm-icon{
+  animation:bgmPulse 2.4s ease-in-out infinite;
+}
+@keyframes bgmPulse{
+  0%,100%{ opacity:.7; transform:scale(.94); }
+  50%    { opacity:1;  transform:scale(1.06); }
+}
+@media(prefers-reduced-motion:reduce){
+  .bgm-toggle[aria-pressed="true"] .bgm-icon{ animation:none; }
+}
+
+/* ============ 极矮屏 ============ */
+@media(max-height:640px){
+  .stage{ padding-block:16px; }
+  .content{ gap:10px; }
+  .scroll-hint{ display:none; }
+}
+
+/* 横屏提示：手机横过来时保持可用 */
+@media(max-width:520px) and (orientation:landscape){
+  .content{ max-width:520px; }
+  .headline{ font-size:clamp(20px,4.4vw,30px); }
+}
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+<!-- 背景音乐开关：默认静音，点击才播放 -->
+<button class="bgm-toggle" id="bgmToggle" type="button" aria-label="暂停背景音乐" aria-pressed="true">
+  <span class="bgm-icon" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 17V5l10-2v12" />
+      <circle cx="6.5" cy="17" r="2.6" />
+      <circle cx="16.5" cy="15" r="2.6" />
+    </svg>
+  </span>
+  <span class="bgm-label">播放中</span>
+</button>
+<audio id="bgm" src="assets/bgm.mp3" loop preload="none"></audio>
+
+
+<main id="story">
+
+  <!-- ========== 01 封面 ========== -->
+  <section class="scene scene--cover" data-scene style="--beats:1">
+    <div class="stage">
+      <img class="bg-art" src="assets/hero.webp" alt="一个孩子站在发光的巨大手机屏前" fetchpriority="high" decoding="async" width="1080" height="1440">
+      <div class="content cover-content">
+        <p class="kicker rv" style="--d:0">网络评论 · 未成年人网络保护</p>
+        <h1 class="cover-title rv" style="--d:1">
+          孩子需要的<br>
+          不是<span class="dim">"防沉迷"</span>，<br>
+          是<span class="hot">"会用网"</span>
+        </h1>
+        <div class="scroll-hint rv" style="--d:2">
+          <span class="dot"></span><span>向下滑动</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 02 问题场景（配图） ========== -->
+  <section class="scene" data-scene data-parallax style="--beats:1.12">
+    <div class="stage stage--texture">
+      <img class="bg-art bg-art--contain bg-art--bright" src="assets/empty.webp" alt="昏暗客厅里，孩子蜷在角落借屏幕的光" loading="lazy" decoding="async" width="1080" height="1440">
+      <div class="content" style="justify-content:flex-start; padding-top:clamp(8px,3vh,32px)">
+        <p class="tagline rv" style="--d:0">一个很常见的晚上</p>
+        <p class="body-text rv" style="--d:1">
+          客厅的灯亮着，人却不在。沙发上搭着没人穿的外套，
+          茶几上的饭已经凉了。
+        </p>
+        <p class="lead rv" style="--d:2">
+          角落里，一个孩子蜷着，抱着发光的屏幕——<br>
+          <em>那是这个房间里唯一的光。</em>
+        </p>
+        <p class="body-text rv" style="--d:3">
+          这样的画面，很多家长都见过。所以我们才习惯了把它叫作"沉迷"。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 03 数字（配图：孩子与 AI 对话） ========== -->
+  <section class="scene" data-scene data-parallax style="--beats:1.18">
+    <div class="stage stage--texture">
+      <img class="bg-art bg-art--contain bg-art--bright" src="assets/ai.webp" alt="孩子对着发光的屏幕与 AI 对话" loading="lazy" decoding="async" width="1080" height="1440">
+      <div class="content" style="justify-content:flex-start; padding-top:clamp(8px,3vh,32px)">
+        <p class="tagline rv" style="--d:0">先把事实摆清楚</p>
+        <p class="stat-line rv" style="--d:1">
+          <span class="stat-num" data-count="75" id="statNum">0</span><span class="stat-pct">%</span>
+        </p>
+        <p class="lead rv" style="--d:2">
+          的未成年人，<em>已经用过 AI 工具</em>
+        </p>
+        <p class="stat-note rv" style="--d:3">
+          据《青少年蓝皮书：中国未成年人互联网运用报告（2026）》
+          （2026 年 10 月发布），超 75% 的未成年人使用过 AI，
+          知晓率达 93.7%；10 岁及以前首次触网的占 67.2%。<br>
+          <span style="opacity:.7">这已经不是"要不要上网"的旧命题，而是"如何在浪潮里安全长大"的新考题。</span>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 04 大人习惯的解法 ========== -->
+  <section class="scene scene--plain" data-scene style="--beats:1.08; --num:'04'">
+    <div class="stage">
+      <div class="content">
+        <p class="tagline rv" style="--d:0">而大人习惯的解法</p>
+        <h2 class="headline rv" style="--d:1" style="font-size:clamp(26px,7.4vw,42px)">
+          设个时长，<br>把手机收走
+        </h2>
+        <p class="body-text rv" style="--d:2">
+          打开青少年模式，设一个每日额度，到点锁屏——
+          这套动作，很多家庭做得已经很熟练了。
+        </p>
+        <p class="punch rv" style="--d:3">
+          它有用。但它只管住了一件事：时间。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 05 转折：锁住的是什么（配图，提亮） ========== -->
+  <section class="scene scene--lift" data-scene data-parallax style="--beats:1.12">
+    <div class="stage stage--texture">
+      <div class="bg-glow"></div>
+      <img class="bg-art bg-art--contain bg-art--bright" src="assets/lock.webp" alt="巨大的倒计时锁，锁链连着低头的孩子" loading="lazy" decoding="async" width="1080" height="1440">
+      <div class="content" style="justify-content:flex-start; padding-top:clamp(8px,3vh,32px)">
+        <p class="tagline rv" style="--d:0">但是</p>
+        <h2 class="headline rv" style="--d:1">
+          这把锁，<br>究竟锁住了什么？
+        </h2>
+        <p class="lead lead--gold rv" style="--d:2">
+          它锁住了<em>时长</em>，<br>锁不住<em>他为什么逃进屏幕里</em>。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 06 三问（纯文字，加大留白层次） ========== -->
+  <section class="scene scene--plain" data-scene style="--beats:1.12; --num:'06'">
+    <div class="stage">
+      <div class="content">
+        <p class="tagline rv" style="--d:0">如果把"沉迷"当成病</p>
+        <h2 class="headline rv" style="--d:1" style="font-size:clamp(26px,7.4vw,42px)">
+          我们治的<br>从来只是症状
+        </h2>
+        <ul class="ask-list">
+          <li class="rv" style="--d:2"><span class="num">01</span><span>他是在逃避，还是在寻找？</span></li>
+          <li class="rv" style="--d:3"><span class="num">02</span><span>真实世界里，哪里让他觉得"我在这里是重要的"？</span></li>
+          <li class="rv" style="--d:4"><span class="num">03</span><span>关掉屏幕之后，他手里还剩什么？</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 07 论点：两个词的区别（配图：大脑） ========== -->
+  <section class="scene" data-scene data-parallax style="--beats:1.18">
+    <div class="stage stage--texture">
+      <img class="bg-art bg-art--contain bg-art--bright" src="assets/brain.webp" alt="半冷半暖的大脑轮廓，孩子伸手触碰" loading="lazy" decoding="async" width="1080" height="1440">
+      <div class="content" style="justify-content:flex-start; padding-top:clamp(8px,3vh,32px)">
+        <p class="tagline rv" style="--d:0">一字之差</p>
+        <h2 class="headline rv" style="--d:1">
+          "防"和"会"<br>是两个世界
+        </h2>
+        <p class="body-text rv" style="--d:2">
+          <strong>防沉迷</strong>的逻辑是"堵"——设一道墙，让他进不去。<br>
+          <strong>会用网</strong>的逻辑是"疏"——给他一套本事，让他进得去、出得来、看得清。
+        </p>
+        <p class="punch rv" style="--d:3">
+          墙可以一直修高，但孩子总要翻过去。本事不会过期。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 08 三条路径 ========== -->
+  <section class="scene scene--plain" data-scene style="--beats:1.12; --num:'08'">
+    <div class="stage">
+      <div class="content">
+        <p class="tagline rv" style="--d:0">那么"会用网"，到底是什么</p>
+        <h2 class="headline rv" style="--d:1" style="font-size:clamp(24px,6.8vw,38px)">
+          不是不碰，<br>是碰了之后能判断
+        </h2>
+        <ul class="ask-list">
+          <li class="rv" style="--d:2">
+            <span class="num num--cn">看</span>
+            <span><strong>看得懂。</strong>知道一条信息从哪来、为谁说话、有没有被剪过。</span>
+          </li>
+          <li class="rv" style="--d:3">
+            <span class="num num--cn">说</span>
+            <span><strong>说得清。</strong>表达观点，也承受别人不同意；不躲在昵称后面伤人。</span>
+          </li>
+          <li class="rv" style="--d:4">
+            <span class="num num--cn">放</span>
+            <span><strong>放得下。</strong>能自己决定什么时候关掉，而不是被推着一直滑下去。</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 09 大人要先会（配图：餐桌） ========== -->
+  <section class="scene" data-scene data-parallax style="--beats:1.22">
+    <div class="stage stage--texture">
+      <img class="bg-art bg-art--contain bg-art--bright" src="assets/table.webp" alt="饭桌上，大人各自低头看手机，孩子抬眼望着" loading="lazy" decoding="async" width="1080" height="1440">
+      <div class="content" style="justify-content:flex-start; padding-top:clamp(8px,3vh,32px)">
+        <p class="tagline rv" style="--d:0">这件事，孩子一个人做不到</p>
+        <h2 class="headline rv" style="--d:1">
+          大人先得<br>会用自己的网
+        </h2>
+        <p class="body-text rv" style="--d:2">
+          孩子不看你设了几道锁，他看你怎么用。
+          你在饭桌上刷手机，他就学会了用屏幕躲开一桌人。
+        </p>
+      </div>
+    </div>
+  </section>
+
+    <!-- ========== 10 结尾（合并原"回扣主题"与"结尾"） ========== -->
+  <section class="scene scene--end" data-scene style="--beats:1.15">
+    <div class="stage stage--texture">
+      <img class="bg-art" src="assets/window.webp" alt="孩子推开窗，光漫进来" loading="lazy" decoding="async" width="1080" height="1440">
+      <div class="content" style="justify-content:flex-end">
+        <p class="kicker kicker--gold rv" style="--d:0">一网同心筑文明</p>
+        <blockquote class="quote rv" style="--d:1">
+          把互联网这个<em>"最大变量"</em>，<br>
+          变成孩子成长的<em>"最大增量"</em>。
+        </blockquote>
+        <h2 class="headline rv" style="--d:2" style="font-size:clamp(24px,6.8vw,38px)">
+          先给他一扇<br>能推开的窗
+        </h2>
+        <p class="punch rv" style="--d:3">
+          锁只能让光留在外面；他要的是知道怎么走出去，也怎么回来。
+        </p>
+        <div class="end-sign rv" style="--d:4">
+          <p>网络评论作品 · 参评"蔚然新滁州"2026滁州市第六届网络评论大赛</p>
+          <p>主题：一网同心筑文明</p>
+        </div>
+        <p class="ai-note rv" style="--d:5">
+          本作品为图文交互式网页（H5）。插画部分由人工智能生成，
+          文字内容为作者原创撰写。依据《人工智能生成合成内容标识办法》，特此标识。
+        </p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+(function(){
+  'use strict';
+
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var clamp = function(v,a,b){ return Math.min(b, Math.max(a,v)); };
+
+  /* ---------- 1. 渐显（IntersectionObserver，只播一次） ---------- */
+  var rvs = document.querySelectorAll('.rv');
+  if (reduce || !('IntersectionObserver' in window)) {
+    for (var i=0;i<rvs.length;i++) rvs[i].classList.add('is-in');
+  } else {
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (e.isIntersecting) {
+          e.target.classList.add('is-in');
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.02, rootMargin: '0px 0px 6% 0px' });
+    for (var j=0;j<rvs.length;j++) io.observe(rvs[j]);
+  }
+
+  /* ---------- 2. 数字递增 ---------- */
+  var numEl = document.getElementById('statNum');
+  function countUp(el, to, dur, suffix){
+    suffix = suffix || '';
+    if (reduce) { el.textContent = to + suffix; return; }
+    var t0 = null;
+    function step(now){
+      if (t0 === null) t0 = now;
+      var t = Math.min(1, (now - t0) / dur);
+      var eased = t === 1 ? 1 : 1 - Math.pow(2, -10 * t); // easeOutExpo
+      el.textContent = Math.round(to * eased) + suffix;
+      if (t < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  if (numEl) {
+    var target = parseInt(numEl.dataset.count, 10) || 0;
+    var suffix = numEl.dataset.suffix || '';
+    if (reduce || !('IntersectionObserver' in window)) {
+      numEl.textContent = target + suffix;
+    } else {
+      var nio = new IntersectionObserver(function(entries){
+        entries.forEach(function(e){
+          if (e.isIntersecting) {
+            countUp(numEl, target, 1500, suffix);
+            nio.unobserve(numEl);
+          }
+        });
+      }, { threshold: 0.6 });
+      nio.observe(numEl);
+    }
+  }
+
+  /* ---------- 3. 阅读进度条 ---------- */
+  var bar = document.getElementById('progress');
+  var ticking = false;
+  function updateProgress(){
+    ticking = false;
+    var doc = document.documentElement;
+    var max = doc.scrollHeight - window.innerHeight;
+    var p = max > 0 ? clamp(window.scrollY / max, 0, 1) : 0;
+    if (bar) bar.style.transform = 'scaleX(' + p.toFixed(4) + ')';
+  }
+  window.addEventListener('scroll', function(){
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(updateProgress);
+  }, { passive: true });
+  window.addEventListener('resize', updateProgress, { passive: true });
+  updateProgress();
+
+  /* ---------- 4. 老设备 vh 兜底（Safari < 15.4） ---------- */
+  if (!CSS.supports('height: 100svh')) {
+    var setVh = function(){
+      var h = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+      document.documentElement.style.setProperty('--vh', h + 'px');
+    };
+    setVh();
+    window.addEventListener('orientationchange', function(){ setTimeout(setVh, 300); });
+    window.addEventListener('resize', setVh, { passive: true });
+  }
+
+
+  /* ---------- 6. 背景音乐：默认自动播放；被浏览器拦截时，等首次交互再播 ---------- */
+  var bgm = document.getElementById('bgm');
+  var bgmBtn = document.getElementById('bgmToggle');
+  var bgmTimer = null;
+  var TARGET_VOL = 0.40;
+  var bgmWanted = true;   // 用户意图：是否希望播放
+
+  function setBtn(on, label){
+    if (!bgmBtn) return;
+    bgmBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    bgmBtn.setAttribute('aria-label', on ? '暂停背景音乐' : '播放背景音乐');
+    var el = bgmBtn.querySelector('.bgm-label');
+    if (el) el.textContent = label;
+  }
+
+  function fadeTo(from, to, ms, done){
+    if (bgmTimer) cancelAnimationFrame(bgmTimer);
+    var start = null;
+    function step(now){
+      if (start === null) start = now;
+      var t = Math.min(1, (now - start) / ms);
+      bgm.volume = Math.max(0, Math.min(1, from + (to - from) * t));
+      if (t < 1) bgmTimer = requestAnimationFrame(step);
+      else if (done) done();
+    }
+    bgmTimer = requestAnimationFrame(step);
+  }
+
+  function tryPlay(firstTry){
+    if (!bgm || bgm.paused === false) return;
+    bgm.volume = 0;
+    var p = bgm.play();
+    if (!p || !p.then) return;
+    p.then(function(){
+      bgmWanted = true;
+      setBtn(true, '播放中');
+      fadeTo(0, TARGET_VOL, firstTry ? 2400 : 1200);
+      detachAutostart();
+    }).catch(function(){
+      // 被自动播放策略拦截：保持"想要播放"状态，等第一次用户交互
+      setBtn(false, '音乐');
+      if (firstTry) armAutostart();
+    });
+  }
+
+  /* 首次交互后立刻尝试播放（点击/触摸/滚动/按键任一即可） */
+  var autoEvents = ['pointerdown', 'touchstart', 'keydown', 'wheel'];
+  function onFirstInteract(){
+    if (bgmWanted && bgm.paused) tryPlay(false);
+    else detachAutostart();
+  }
+  function armAutostart(){
+    for (var i = 0; i < autoEvents.length; i++) {
+      window.addEventListener(autoEvents[i], onFirstInteract, { passive: true, once: false });
+    }
+    window.addEventListener('scroll', onFirstInteract, { passive: true, once: false });
+  }
+  function detachAutostart(){
+    for (var i = 0; i < autoEvents.length; i++) {
+      window.removeEventListener(autoEvents[i], onFirstInteract);
+    }
+    window.removeEventListener('scroll', onFirstInteract);
+  }
+
+  if (bgm && bgmBtn) {
+    bgm.volume = 0;
+
+    // 页面加载即尝试自动播放
+    if (bgm.readyState >= 1) {
+      tryPlay(true);
+    } else {
+      bgm.addEventListener('loadedmetadata', function(){ tryPlay(true); }, { once: true });
+      bgm.addEventListener('canplay', function(){ tryPlay(true); }, { once: true });
+      // 兜底：给个短延时再试一次
+      setTimeout(function(){ if (bgm.paused) tryPlay(true); }, 300);
+    }
+
+    // 手动开关
+    bgmBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      if (bgm.paused) {
+        bgmWanted = true;
+        tryPlay(false);
+      } else {
+        bgmWanted = false;
+        detachAutostart();
+        fadeTo(bgm.volume, 0, 400, function(){
+          bgm.pause();
+          setBtn(false, '音乐');
+        });
+      }
+    });
+
+    // 切到后台自动暂停；回来时若仍"想要播放"则恢复
+    document.addEventListener('visibilitychange', function(){
+      if (document.hidden) {
+        if (!bgm.paused) { bgm.pause(); setBtn(false, '音乐'); }
+      } else if (bgmWanted && bgm.paused) {
+        tryPlay(false);
+      }
+    });
+  }
+
+  /* ---------- 5. 标签页隐藏时暂停 ---------- */
+  document.addEventListener('visibilitychange', function(){
+    document.documentElement.classList.toggle('is-hidden', document.hidden);
+  });
+})();
+</script>
+
+</body>
+</html>
